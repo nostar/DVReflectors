@@ -13,6 +13,10 @@ RUN groupadd mmdvm && \
     useradd mmdvm -g mmdvm -s /sbin/nologin && \
     usermod -a -G dialout mmdvm
 
+# Create log directory and set correct permissions
+RUN mkdir /var/log/NXDNReflector && \
+    chown mmdvm:mmdvm /var/log/NXDNReflector
+
 # Set the working directory in the container
 WORKDIR /usr/src/app
 
