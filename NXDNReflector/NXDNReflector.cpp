@@ -568,22 +568,21 @@ CNXDNRepeater* CNXDNReflector::findRepeater(const sockaddr_storage& addr) const
 
 void CNXDNReflector::dumpRepeaters() const
 {
-    unsigned short tg = m_conf.getTG();  // Retrieve the TG number from the configuration
-
+    unsigned short tg = m_conf.getTG();  // Retrieve the TG value.
     if (m_repeaters.size() == 0U) {
-        LogMessage("No repeaters linked");
+        LogMessage("No repeaters linked on TG %u", tg);
         return;
     }
 
-    LogMessage("Currently linked repeaters:");
+    LogMessage("Currently linked repeaters on TG %u:", tg);
 
     for (std::vector<CNXDNRepeater*>::const_iterator it = m_repeaters.begin(); it != m_repeaters.end(); ++it) {
         char buffer[80U];
         LogMessage("    %s: %s %u/%u %u", (*it)->m_callsign.c_str(),
-                                          CUDPSocket::display((*it)->m_addr, buffer, 80U), 
-                                          (*it)->m_timer.getTimer(),
-                                          (*it)->m_timer.getTimeout(),
-                                          tg);  // Include the TG number in the log
+                                           CUDPSocket::display((*it)->m_addr, buffer, 80U),
+                                           (*it)->m_timer.getTimer(),
+                                           (*it)->m_timer.getTimeout(),
+                                           tg);  // Append the TG value at the end of the log message.
     }
 }
 
