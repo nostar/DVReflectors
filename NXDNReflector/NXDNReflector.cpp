@@ -525,9 +525,11 @@ void CNXDNReflector::run()
 		watchdogTimer.clock(ms);
 		if (watchdogTimer.isRunning() && watchdogTimer.hasExpired()) {
 			if (current != NULL) {
+                unsigned short srcId = (buffer[5U] << 8) | buffer[6U];
+                unsigned short dstId = (buffer[7U] << 8) | buffer[8U];
+                bool grp = (buffer[9U] & 0x01U) == 0x01U;
 			    std::string callsign = lookup->find(srcId);
-			    unsigned short tg = m_conf.getTG();
-			    LogMessage("Network watchdog has expired from %s at %s to TG %u", callsign.c_str(), current->m_callsign.c_str(), tg);
+			    LogMessage("Network watchdog has expired from %s at %s to %s%u", callsign.c_str(), current->m_callsign.c_str(), grp ? "TG " : "", dstId);
 
 			} else {
 			    LogMessage("Network watchdog has expired");
