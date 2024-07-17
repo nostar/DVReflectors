@@ -358,7 +358,8 @@ void CNXDNReflector::run()
 								m_kenwoodNetwork->write(buffer, len);
 
 							if ((buffer[9U] & 0x08U) == 0x08U) {
-								LogMessage("Received end of transmission");
+								std::string callsign = lookup->find(srcId);
+								LogMessage("Received end of transmission from %s at %s to %s%u", callsign.c_str(), current->m_callsign.c_str(), grp ? "TG " : "", dstId);
 								current = NULL;
 								active = ACTIVE_NONE;
 								watchdogTimer.stop();
@@ -523,7 +524,12 @@ void CNXDNReflector::run()
 
 		watchdogTimer.clock(ms);
 		if (watchdogTimer.isRunning() && watchdogTimer.hasExpired()) {
-			LogMessage("Network watchdog has expired");
+			if (current != NULL) {
+			    std::string callsign = current->m_callsign;
+			    LogMessage("Network watchdog has expired from %s at %s to %s%u", callsign.c_str(), current->m_callsign.c_str(), grp ? "TG " : "", dstId);
+			} else {
+			    LogMessage("Network watchdog has expired");
+			}
 			watchdogTimer.stop();
 			current = NULL;
 			active = ACTIVE_NONE;
