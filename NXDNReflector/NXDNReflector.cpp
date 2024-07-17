@@ -238,6 +238,11 @@ void CNXDNReflector::run()
 	unsigned short srcId = 0U;
 	unsigned short dstId = 0U;
 	bool grp = false;
+    // crete variables to hold the TG value, source and destination values for the user the start of the transmission
+    const char* starting_user_callsign = "";
+    const char* starting_repeater_callsign = "";
+    bool starting_grp = false;
+    unsigned short starting_dest = 0U;
 
 	CTimer watchdogTimer(1000U, 0U, 1500U);
 
@@ -339,6 +344,12 @@ void CNXDNReflector::run()
 
 							std::string callsign = lookup->find(srcId);
 							LogMessage("Transmission from %s at %s to %s%u", callsign.c_str(), current->m_callsign.c_str(), grp ? "TG " : "", dstId);
+
+                            // Save the grp, src and dest for use in the NXDN Protocol messages
+                            starting_user_callsign = callsign.c_str(); // Save the callsign of the user who started the transmission
+                            starting_repeater_callsign = current->m_callsign.c_str(); // Save the callsign of the repeater that started the transmission
+                            starting_grp = grp; // Save the group value of the user who started the transmission
+                            starting_dest = dstId; // Save the destination value of the user who started the transmission
 
 							active = ACTIVE_NXDN;
 						}
@@ -525,13 +536,13 @@ void CNXDNReflector::run()
 		watchdogTimer.clock(ms);
 		if (watchdogTimer.isRunning() && watchdogTimer.hasExpired()) {
 			if (current != NULL) {
-                unsigned short srcId = (buffer[5U] << 8) | buffer[6U];
-                unsigned short dstId = (buffer[7U] << 8) | buffer[8U];
-                bool grp = (buffer[9U] & 0x01U) == 0x01U;
-			    std::string callsign = lookup->find(srcId);
-                // get the tg for the user the start of the transmission
-                unsigned short tg = (buffer[7U] << 8) | buffer[8U];
-			    LogMessage("Network watchdog has expired from %s at %s to %s%u", callsign.c_str(), current->m_callsign.c_str(), grp ? "TG " : "", dstId);
+                // use the saved values to log the end of the transmission
+			    LogMessage("Network watchdog has expired from %s at %s to %s%u", starting_user_callsign, starting_repeater_callsign, starting_grp ? "TG " : "", starting_dest);
+                // Reset the saved values
+                starting_user_callsign = "";
+                starting_repeater_callsign = "";
+                starting_grp = false;
+                starting_dest = 0U;
 			} else {
 			    LogMessage("Network watchdog has expired");
 			}
