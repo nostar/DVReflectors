@@ -255,7 +255,7 @@ void CYSFReflector::run()
 					if (blocked)
 						LogMessage("Data from %10.10s at %10.10s blocked", src, tag);
 					else
-                        LogMessage("Transmission from %s at %s to TG %s", src, tag, dst);
+                        LogMessage("Transmission from %.10s at %.10s to TG %.10s", src, tag, dst);
 				} else {
 					if (::memcmp(tag, buffer + 4U, YSF_CALLSIGN_LENGTH) == 0) {
 						bool changed = false;
@@ -275,7 +275,7 @@ void CYSFReflector::run()
 							if (blocked)
 								LogMessage("Data from %10.10s at %10.10s blocked", src, tag);
 							else
-                                LogMessage("Transmission from %s at %s to TG %s", src, tag, dst);
+                                LogMessage("Transmission from %.10s at %.10s to TG %.10s", src, tag, dst);
 						}
 					}
 				}
@@ -289,7 +289,7 @@ void CYSFReflector::run()
 					}
 
 					if ((buffer[34U] & 0x01U) == 0x01U) {
-						LogMessage("Received end of transmission from %s at %s to TG %s", src, tag, dst);
+                        LogMessage("Received end of transmission from %.10s at %.10s to TG %.10s", src, tag, dst);
 						watchdogTimer.stop();
 					}
 				}
@@ -325,7 +325,7 @@ void CYSFReflector::run()
 
 		watchdogTimer.clock(ms);
 		if (watchdogTimer.isRunning() && watchdogTimer.hasExpired()) {
-            LogMessage("Network watchdog has expired from %s at %s to TG %s", src, tag, dst);
+            LogMessage("Network watchdog has expired from %.10s at %.10s to TG %.10s", src, tag, dst);
 			watchdogTimer.stop();
 		}
 
