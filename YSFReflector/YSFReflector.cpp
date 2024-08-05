@@ -143,7 +143,7 @@ void CYSFReflector::run()
 				return;
 			}
 
-			// Double check it worked (AKA Paranoia) 
+			// Double check it worked (AKA Paranoia)
 			if (setuid(0) != -1) {
 				::fprintf(stderr, "It's possible to regain root - something is wrong!, exiting\n");
 				return;
@@ -182,7 +182,7 @@ void CYSFReflector::run()
 	blockList.start();
 
 	network.setCount(0);
-	
+
 	CStopWatch stopWatch;
 	stopWatch.start();
 
@@ -255,7 +255,7 @@ void CYSFReflector::run()
 					if (blocked)
 						LogMessage("Data from %10.10s at %10.10s blocked", src, tag);
 					else
-						LogMessage("Received data from %10.10s to %10.10s at %10.10s", src, dst, tag);
+                        LogMessage("Transmission from %s at %s to TG %s", src, tag, dst);
 				} else {
 					if (::memcmp(tag, buffer + 4U, YSF_CALLSIGN_LENGTH) == 0) {
 						bool changed = false;
@@ -275,7 +275,7 @@ void CYSFReflector::run()
 							if (blocked)
 								LogMessage("Data from %10.10s at %10.10s blocked", src, tag);
 							else
-								LogMessage("Received data from %10.10s to %10.10s at %10.10s", src, dst, tag);
+                                LogMessage("Transmission from %s at %s to TG %s", src, tag, dst);
 						}
 					}
 				}
@@ -289,7 +289,7 @@ void CYSFReflector::run()
 					}
 
 					if ((buffer[34U] & 0x01U) == 0x01U) {
-						LogMessage("Received end of transmission");
+						LogMessage("Received end of transmission from %s at %s to TG %s", src, tag, dst);
 						watchdogTimer.stop();
 					}
 				}
@@ -325,7 +325,7 @@ void CYSFReflector::run()
 
 		watchdogTimer.clock(ms);
 		if (watchdogTimer.isRunning() && watchdogTimer.hasExpired()) {
-			LogMessage("Network watchdog has expired");
+            LogMessage("Network watchdog has expired from %s at %s to TG %s", src, tag, dst);
 			watchdogTimer.stop();
 		}
 
@@ -359,11 +359,11 @@ CYSFRepeater* CYSFReflector::findRepeater(const sockaddr_storage& addr) const
 void CYSFReflector::dumpRepeaters() const
 {
 	if (m_repeaters.size() == 0U) {
-		LogMessage("No repeaters/gateways linked");
+		LogMessage("No repeaters linked on TG 226");
 		return;
 	}
 
-	LogMessage("Currently linked repeaters/gateways:");
+	LogMessage("Currently linked repeaters on TG 226:");
 
 	for (std::vector<CYSFRepeater*>::const_iterator it = m_repeaters.begin(); it != m_repeaters.end(); ++it) {
 		char buffer[80U];
