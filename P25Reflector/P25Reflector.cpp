@@ -280,7 +280,8 @@ void CP25Reflector::run()
 					}
 
 					if (buffer[0U] == 0x80U) {
-						LogMessage("Received end of transmission");
+                        std::string callsign = lookup->find(srcId);
+						LogMessage("Received end of transmission from %s at %s to %s%u", callsign.c_str(), current->m_callsign.c_str(), lcf == 0x00U ? "TG " : "", dstId);
 						watchdogTimer.stop();
 						current = NULL;
 					}
@@ -312,7 +313,7 @@ void CP25Reflector::run()
 
 		watchdogTimer.clock(ms);
 		if (watchdogTimer.isRunning() && watchdogTimer.hasExpired()) {
-			LogMessage("Network watchdog has expired");
+			LogMessage("Network watchdog has expired from %s at %s to %s%u", current->m_callsign.c_str(), lookup->find(srcId).c_str(), lcf == 0x00U ? "TG " : "", dstId);
 			watchdogTimer.stop();
 			current = NULL;
 		}
@@ -347,11 +348,11 @@ CP25Repeater* CP25Reflector::findRepeater(const sockaddr_storage& addr) const
 void CP25Reflector::dumpRepeaters() const
 {
 	if (m_repeaters.size() == 0U) {
-		LogMessage("No repeaters linked");
+		LogMessage("No repeaters linked on TG 226");
 		return;
 	}
 
-	LogMessage("Currently linked repeaters:");
+	LogMessage("Currently linked repeaters on TG 226:");
 
 	for (std::vector<CP25Repeater*>::const_iterator it = m_repeaters.begin(); it != m_repeaters.end(); ++it) {
 		char buffer[80U];
