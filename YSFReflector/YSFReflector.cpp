@@ -197,10 +197,6 @@ void CYSFReflector::run()
 
 	CTimer watchdogTimer(1000U, 0U, 1500U);
 
-	unsigned char tag[YSF_CALLSIGN_LENGTH];
-	unsigned char src[YSF_CALLSIGN_LENGTH];
-	unsigned char dst[YSF_CALLSIGN_LENGTH];
-
 	bool blocked = false;
 
 	for (;;) {

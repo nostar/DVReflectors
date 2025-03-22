@@ -18,6 +18,7 @@
 
 #if !defined(YSFReflector_H)
 #define	YSFReflector_H
+#define YSF_CALLSIGN_LENGTH 10
 
 #include "Timer.h"
 #include "Conf.h"
@@ -63,18 +64,18 @@ public:
 	void run();
 
 private:
-	CConf                      m_conf;
-	std::vector<CYSFRepeater*> m_repeaters;
+    CConf                      m_conf;
+    std::vector<CYSFRepeater*> m_repeaters;
+    bool                       m_txActive;
+    unsigned char              m_currentTag[YSF_CALLSIGN_LENGTH];
+    unsigned char              m_currentSrc[YSF_CALLSIGN_LENGTH];
+    unsigned char              m_currentDst[YSF_CALLSIGN_LENGTH];
+    sockaddr_storage           m_currentAddr;
+    unsigned int               m_currentAddrLen;
 
-	CYSFRepeater* findRepeater(const sockaddr_storage& addr) const;
-	void dumpRepeaters() const;
-
-	bool m_txActive; // Is a transmission ongoing?
-        unsigned char m_currentTag[YSF_CALLSIGN_LENGTH]; // Active repeater's tag
-        unsigned char m_currentSrc[YSF_CALLSIGN_LENGTH]; // Source callsign
-        unsigned char m_currentDst[YSF_CALLSIGN_LENGTH]; // Destination callsign
-        sockaddr_storage m_currentAddr; // Transmitting repeater's address
-        unsigned int m_currentAddrLen;
+    // Member functions AFTER
+    CYSFRepeater* findRepeater(const sockaddr_storage& addr) const;
+    void dumpRepeaters() const;
 };
 
 #endif
