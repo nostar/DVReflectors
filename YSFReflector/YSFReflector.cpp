@@ -17,6 +17,7 @@
 */
 
 #include "YSFReflector.h"
+#include "YSFDefines.h"
 #include "BlockList.h"
 #include "StopWatch.h"
 #include "Network.h"
@@ -232,6 +233,9 @@ void CYSFReflector::run()
 				}
 				network.setCount(m_repeaters.size());
 			} else if (::memcmp(buffer + 0U, "YSFD", 4U) == 0 && rpt != NULL) {
+			    unsigned char incomingTag[YSF_CALLSIGN_LENGTH];
+                unsigned char incomingSrc[YSF_CALLSIGN_LENGTH];
+                unsigned char incomingDst[YSF_CALLSIGN_LENGTH];
                   // Extract metadata from buffer
                   ::memcpy(incomingTag, buffer + 4U, YSF_CALLSIGN_LENGTH);
                   ::memcpy(incomingSrc, buffer + 14U, YSF_CALLSIGN_LENGTH);

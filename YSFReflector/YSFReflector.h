@@ -19,6 +19,7 @@
 #if !defined(YSFReflector_H)
 #define	YSFReflector_H
 
+#include "YSFDefines.h"
 #include "Timer.h"
 #include "Conf.h"
 
