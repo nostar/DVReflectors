@@ -238,62 +238,78 @@ void CYSFReflector::run()
 				}
 				network.setCount(m_repeaters.size());
 			} else if (::memcmp(buffer + 0U, "YSFD", 4U) == 0 && rpt != NULL) {
-				if (!watchdogTimer.isRunning()) {
-					::memcpy(tag, buffer + 4U, YSF_CALLSIGN_LENGTH);
+                  // Extract metadata from buffer
+                  unsigned char incomingTag[YSF_CALLSIGN_LENGTH];
+                  unsigned char incomingSrc[YSF_CALLSIGN_LENGTH];
+                  unsigned char incomingDst[YSF_CALLSIGN_LENGTH];
+                  ::memcpy(incomingTag, buffer + 4U, YSF_CALLSIGN_LENGTH);
+                  ::memcpy(incomingSrc, buffer + 14U, YSF_CALLSIGN_LENGTH);
+                  ::memcpy(incomingDst, buffer + 24U, YSF_CALLSIGN_LENGTH);
 
-					if (::memcmp(buffer + 14U, "          ", YSF_CALLSIGN_LENGTH) != 0)
-						::memcpy(src, buffer + 14U, YSF_CALLSIGN_LENGTH);
-					else
-						::memcpy(src, "??????????", YSF_CALLSIGN_LENGTH);
+                  // Blocklist check (re-check mid-TX if needed)
+                  bool isBlocked = false;
+                  if (!m_txActive) {
+                      isBlocked = blockList.check(incomingSrc);
+                  } else {
+                      isBlocked = blockList.check(incomingSrc) || blockList.check(m_currentSrc);
+                  }
 
-					if (::memcmp(buffer + 24U, "          ", YSF_CALLSIGN_LENGTH) != 0)
-						::memcpy(dst, buffer + 24U, YSF_CALLSIGN_LENGTH);
-					else
-						::memcpy(dst, "??????????", YSF_CALLSIGN_LENGTH);
+                  if (isBlocked) {
+                      if (m_txActive) {
+                          m_txActive = false;
+                          watchdogTimer.stop();
+                          LogMessage("Data from %10.10s at %10.10s blocked", incomingSrc, incomingTag);
+                      } else {
+                          LogMessage("Data from %10.10s at %10.10s blocked", incomingSrc, incomingTag);
+                      }
+                      continue;
+                  }
 
-					blocked = blockList.check(src);
-					if (blocked)
-						LogMessage("Data from %10.10s at %10.10s blocked", src, tag);
-					else
-                        LogMessage("Transmission from %.10s at %.10s to TG %.10s", src, tag, dst);
-				} else {
-					if (::memcmp(tag, buffer + 4U, YSF_CALLSIGN_LENGTH) == 0) {
-						bool changed = false;
+                  // TX Lock Logic
+                  if (!m_txActive) {
+                      // New transmission
+                      m_txActive = true;
+                      ::memcpy(m_currentTag, incomingTag, YSF_CALLSIGN_LENGTH);
+                      ::memcpy(m_currentSrc, incomingSrc, YSF_CALLSIGN_LENGTH);
+                      ::memcpy(m_currentDst, incomingDst, YSF_CALLSIGN_LENGTH);
+                      ::memcpy(&m_currentAddr, &addr, sizeof(sockaddr_storage));
+                      m_currentAddrLen = addrLen;
+                      watchdogTimer.start();
 
-						if (::memcmp(buffer + 14U, "          ", YSF_CALLSIGN_LENGTH) != 0 && ::memcmp(src, "??????????", YSF_CALLSIGN_LENGTH) == 0) {
-							::memcpy(src, buffer + 14U, YSF_CALLSIGN_LENGTH);
-							changed = true;
-						}
+                      LogMessage("Transmission from %.10s at %.10s to TG %.10s", m_currentSrc, m_currentTag, m_currentDst);
+                  } else {
+                      // Check if continuation from same source
+                      bool isSameTag = (::memcmp(incomingTag, m_currentTag, YSF_CALLSIGN_LENGTH) == 0);
+                      bool isSameRepeater = CUDPSocket::match(addr, m_currentAddr);
 
-						if (::memcmp(buffer + 24U, "          ", YSF_CALLSIGN_LENGTH) != 0 && ::memcmp(dst, "??????????", YSF_CALLSIGN_LENGTH) == 0) {
-							::memcpy(dst, buffer + 24U, YSF_CALLSIGN_LENGTH);
-							changed = true;
-						}
+                      if (!isSameTag || !isSameRepeater) {
+                          LogMessage("Ignoring overlapping TX from %.10s", incomingSrc);
+                          continue;
+                      }
 
-						if (changed) {
-							blocked = blockList.check(src);
-							if (blocked)
-								LogMessage("Data from %10.10s at %10.10s blocked", src, tag);
-							else
-                                LogMessage("Transmission from %.10s at %.10s to TG %.10s", src, tag, dst);
-						}
-					}
-				}
+                      // Update partial metadata
+                      if (::memcmp(m_currentSrc, "??????????", YSF_CALLSIGN_LENGTH) == 0)
+                          ::memcpy(m_currentSrc, incomingSrc, YSF_CALLSIGN_LENGTH);
+                      if (::memcmp(m_currentDst, "??????????", YSF_CALLSIGN_LENGTH) == 0)
+                          ::memcpy(m_currentDst, incomingDst, YSF_CALLSIGN_LENGTH);
+                  }
 
-				if (!blocked) {
-					watchdogTimer.start();
+                  // Forward data to other repeaters
+                  for (std::vector<CYSFRepeater*>::const_iterator it = m_repeaters.begin(); it != m_repeaters.end(); ++it) {
+                      if (!CUDPSocket::match((*it)->m_addr, addr))
+                          network.writeData(buffer, (*it)->m_addr, (*it)->m_addrLen);
+                  }
 
-					for (std::vector<CYSFRepeater*>::const_iterator it = m_repeaters.begin(); it != m_repeaters.end(); ++it) {
-						if (!CUDPSocket::match((*it)->m_addr, addr))
-							network.writeData(buffer, (*it)->m_addr, (*it)->m_addrLen);
-					}
-
-					if ((buffer[34U] & 0x01U) == 0x01U) {
-                        LogMessage("Received end of transmission from %.10s at %.10s to TG %.10s", src, tag, dst);
-						watchdogTimer.stop();
-					}
-				}
-			}
+                  // End-of-TX detection
+                  if ((buffer[34U] & 0x01U) == 0x01U) {
+                      LogMessage("Received end of transmission from %.10s at %.10s to TG %.10s", m_currentSrc, m_currentTag, m_currentDst);
+                      m_txActive = false;
+                      watchdogTimer.stop();
+                      ::memset(m_currentTag, 0, YSF_CALLSIGN_LENGTH);
+                      ::memset(m_currentSrc, 0, YSF_CALLSIGN_LENGTH);
+                      ::memset(m_currentDst, 0, YSF_CALLSIGN_LENGTH);
+                  }
+              }
 		}
 
 		unsigned int ms = stopWatch.elapsed();
@@ -310,24 +326,30 @@ void CYSFReflector::run()
 		for (std::vector<CYSFRepeater*>::iterator it = m_repeaters.begin(); it != m_repeaters.end(); ++it)
 			(*it)->m_timer.clock(ms);
 
-		for (std::vector<CYSFRepeater*>::iterator it = m_repeaters.begin(); it != m_repeaters.end(); ++it) {
-			if ((*it)->m_timer.hasExpired()) {
-				char buff[80U];
-				LogMessage("Removing %s (%s) disappeared", (*it)->m_callsign.c_str(),
-														   CUDPSocket::display((*it)->m_addr, buff, 80U));
-
-				delete *it;
-				m_repeaters.erase(it);
-				network.setCount(m_repeaters.size());
-				break;
-			}
-		}
+		auto it = m_repeaters.begin();
+        while (it != m_repeaters.end()) {
+            if ((*it)->m_timer.hasExpired()) {
+                char buff[80U];
+                LogMessage("Removing %s (%s) disappeared", (*it)->m_callsign.c_str(), CUDPSocket::display((*it)->m_addr, buff, 80U));
+                delete *it;
+                it = m_repeaters.erase(it);
+                network.setCount(m_repeaters.size());
+            } else {
+                ++it;
+            }
+        }
 
 		watchdogTimer.clock(ms);
 		if (watchdogTimer.isRunning() && watchdogTimer.hasExpired()) {
-            LogMessage("Network watchdog has expired from %.10s at %.10s to TG %.10s", src, tag, dst);
-			watchdogTimer.stop();
-		}
+            if (m_txActive) {
+                LogMessage("Network watchdog has expired from %.10s at %.10s to TG %.10s", m_currentSrc, m_currentTag, m_currentDst);
+                m_txActive = false;
+                ::memset(m_currentTag, 0, YSF_CALLSIGN_LENGTH);
+                ::memset(m_currentSrc, 0, YSF_CALLSIGN_LENGTH);
+                ::memset(m_currentDst, 0, YSF_CALLSIGN_LENGTH);
+            }
+            watchdogTimer.stop();
+        }
 
 		dumpTimer.clock(ms);
 		if (dumpTimer.hasExpired()) {

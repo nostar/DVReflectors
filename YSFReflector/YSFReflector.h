@@ -68,6 +68,13 @@ private:
 
 	CYSFRepeater* findRepeater(const sockaddr_storage& addr) const;
 	void dumpRepeaters() const;
+
+	bool m_txActive; // Is a transmission ongoing?
+        unsigned char m_currentTag[YSF_CALLSIGN_LENGTH]; // Active repeater's tag
+        unsigned char m_currentSrc[YSF_CALLSIGN_LENGTH]; // Source callsign
+        unsigned char m_currentDst[YSF_CALLSIGN_LENGTH]; // Destination callsign
+        sockaddr_storage m_currentAddr; // Transmitting repeater's address
+        unsigned int m_currentAddrLen;
 };
 
 #endif
