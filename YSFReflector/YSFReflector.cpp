@@ -243,6 +243,9 @@ void CYSFReflector::run()
 
                   // Blocklist check (re-check mid-TX if needed)
                   bool isBlocked = false;
+
+                  watchdogTimer.start();
+
                   if (!m_txActive) {
                       isBlocked = blockList.check(incomingSrc);
                   } else {
