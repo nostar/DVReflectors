@@ -18,7 +18,6 @@
 
 #if !defined(YSFReflector_H)
 #define	YSFReflector_H
-#define YSF_CALLSIGN_LENGTH 10
 
 #include "Timer.h"
 #include "Conf.h"

@@ -197,8 +197,6 @@ void CYSFReflector::run()
 
 	CTimer watchdogTimer(1000U, 0U, 1500U);
 
-	bool blocked = false;
-
 	for (;;) {
 		unsigned char buffer[200U];
 		sockaddr_storage addr;
