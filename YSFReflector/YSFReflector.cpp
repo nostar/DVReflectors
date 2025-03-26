@@ -244,8 +244,6 @@ void CYSFReflector::run()
                   // Blocklist check (re-check mid-TX if needed)
                   bool isBlocked = false;
 
-                  watchdogTimer.start();
-
                   if (!m_txActive) {
                       isBlocked = blockList.check(incomingSrc);
                   } else {
@@ -265,6 +263,7 @@ void CYSFReflector::run()
 
                   // TX Lock Logic
                   if (!m_txActive) {
+                      watchdogTimer.start();
                       // New transmission
                       m_txActive = true;
                       ::memcpy(m_currentTag, incomingTag, YSF_CALLSIGN_LENGTH);
@@ -284,6 +283,9 @@ void CYSFReflector::run()
                           LogMessage("Ignoring overlapping TX from %.10s", incomingSrc);
                           continue;
                       }
+
+                       watchdogTimer.start();
+
 
                       // Update partial metadata
                       if (::memcmp(m_currentSrc, "??????????", YSF_CALLSIGN_LENGTH) == 0)
