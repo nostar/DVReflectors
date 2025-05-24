@@ -49,7 +49,7 @@ static char LEVELS[] = " DMIWEF";
 static bool logOpenRotate()
 {
 	bool status = false;
-	
+
 	if (m_fileLevel == 0U)
 		return true;
 
@@ -81,7 +81,7 @@ static bool logOpenRotate()
 			dup2(fileno(m_fpLog), fileno(stderr));
 #endif
 	}
-	
+
 	m_tm = *tm;
 
 	return status;
@@ -149,7 +149,7 @@ void Log(unsigned int level, const char* fmt, ...)
 {
 	assert(fmt != NULL);
 
-	char buffer[501U];
+	char buffer[540U];
 #if defined(_WIN32) || defined(_WIN64)
 	SYSTEMTIME st;
 	::GetSystemTime(&st);
