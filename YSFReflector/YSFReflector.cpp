@@ -206,20 +206,40 @@ void CYSFReflector::run()
 		unsigned int len = network.readData(buffer, 200U, addr, addrLen);
 		if (len > 0U) {
 			CYSFRepeater* rpt = findRepeater(addr);
-			if (::memcmp(buffer, "YSFP", 4U) == 0) {
-				if (rpt == NULL) {
-					rpt = new CYSFRepeater;
-					rpt->m_callsign = std::string((char*)(buffer + 4U), 10U);
-					::memcpy(&rpt->m_addr, &addr, sizeof(struct sockaddr_storage));
-					rpt->m_addrLen  = addrLen;
-					m_repeaters.push_back(rpt);
-					network.setCount(m_repeaters.size());
+                        if (::memcmp(buffer, "YSFP", 4U) == 0) {
+                                unsigned char incoming[YSF_CALLSIGN_LENGTH];
+                                ::memcpy(incoming, buffer + 4U, YSF_CALLSIGN_LENGTH);
 
-					char buff[80U];
-					LogMessage("Adding %s (%s)", rpt->m_callsign.c_str(), CUDPSocket::display(addr, buff, 80U));
-				}
-				rpt->m_timer.start();
-				network.writePoll(addr, addrLen);
+                                if (blockList.check(incoming)) {
+                                        char buff[80U];
+                                        LogMessage("Connection attempt from blocked callsign %10.10s (%s) rejected", incoming, CUDPSocket::display(addr, buff, 80U));
+
+                                        if (rpt != NULL) {
+                                                for (std::vector<CYSFRepeater*>::iterator it = m_repeaters.begin(); it != m_repeaters.end(); ++it) {
+                                                        if (CUDPSocket::match((*it)->m_addr, addr)) {
+                                                                delete *it;
+                                                                m_repeaters.erase(it);
+                                                                network.setCount(m_repeaters.size());
+                                                                break;
+                                                        }
+                                                }
+                                        }
+                                        continue;
+                                }
+
+                                if (rpt == NULL) {
+                                        rpt = new CYSFRepeater;
+                                        rpt->m_callsign = std::string((char*)(buffer + 4U), 10U);
+                                        ::memcpy(&rpt->m_addr, &addr, sizeof(struct sockaddr_storage));
+                                        rpt->m_addrLen  = addrLen;
+                                        m_repeaters.push_back(rpt);
+                                        network.setCount(m_repeaters.size());
+
+                                        char buff[80U];
+                                        LogMessage("Adding %s (%s)", rpt->m_callsign.c_str(), CUDPSocket::display(addr, buff, 80U));
+                                }
+                                rpt->m_timer.start();
+                                network.writePoll(addr, addrLen);
 			} else if (::memcmp(buffer + 0U, "YSFU", 4U) == 0 && rpt != NULL) {
 				char buff[80U];
 				LogMessage("Removing %s (%s) unlinked", rpt->m_callsign.c_str(), CUDPSocket::display(addr, buff, 80U));
